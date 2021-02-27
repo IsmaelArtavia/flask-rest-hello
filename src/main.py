@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Personaje
+from models import db, User, Personaje, Planet
 #from models import Person
 
 app = Flask(__name__)
@@ -54,6 +54,38 @@ def get_personaje(id):
     response_body = {
         "msg": "Hello, this is your GET /user response ",
         "personaje": personaje
+        
+    }
+
+    return jsonify(response_body), 200
+
+
+
+@app.route('/planet/', methods=['GET'])
+def get_planets():
+    query_planets = Planet.query.all()
+    query_planets = list(map(lambda x: x.serialize(), query_planets))
+
+    # if user_query is None:
+    #     return "Not found", 404
+    print(query_planets)
+    response_body = {
+        "msg": "Hello, this is your GET /user response ",
+        "planets": query_planets
+        
+    }
+
+    return jsonify(response_body), 200
+
+@app.route('/planet/<int:id>', methods=['GET'])
+def get_planet(id):
+    planet = Planet.query.get(id).serialize()
+    # if user_query is None:
+    #     return "Not found", 404
+    print(planet)
+    response_body = {
+       
+        "planet": planet
         
     }
 
