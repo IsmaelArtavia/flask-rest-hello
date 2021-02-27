@@ -37,7 +37,7 @@ people_query = Person.query.all()
 people_query = Person.query.filter_by(name='Joe')
 
 # map the results and your list of people  inside of the all_people variable
-all_people = list(map(lambda x: x.serialize(), people_query))
+all_people = list(map(lambda x: x.favorites(), people_query))
 
 # get just one person
 user1 = Person.query.get(person_id)

@@ -9,8 +9,8 @@ class User(db.Model):
     password = db.Column(db.String(80), unique=False, nullable=False)
     is_active = db.Column(db.Boolean(), unique=False, nullable=False)
     username = db.Column(db.String(120), unique=True, nullable=False)
-    # fav_planets = relationship('FavPlanets')
-    # fav_characters = relationship('FavCharacters')
+    fav_planets = db.relationship('FavPlanets', lazy=True)
+    fav_characters = db.relationship('FavCharacters', lazy=True)
 
 
     def __repr__(self):
@@ -20,7 +20,16 @@ class User(db.Model):
         return {
             "id": self.id,
             "email": self.email,
-            "username": self.username
+            "username": self.username,
+            # "planets": self.fav_planets,
+            # "characters": self.fav_characters
+            # do not serialize the password, its a security breach
+        }
+    def favorites(self):
+        return {
+            "planets": self.fav_planets,
+            "characters": self.fav_characters,
+            "email": self.email,
             # do not serialize the password, its a security breach
         }
 
@@ -36,6 +45,7 @@ class Personaje(db.Model):
     gender = db.Column(db.String(50), unique=False, nullable=False)
     name = db.Column(db.String(50), unique=False, nullable=False)
     url = db.Column(db.String(50), unique=False, nullable=False)
+    tipo = db.Column(db.String(50), unique=False, nullable=False)
 
     def __repr__(self):
         return '<Personaje %r>' % self.name
@@ -56,17 +66,17 @@ class Personaje(db.Model):
         }
 
 class Planet(db.Model):
-    __tablename__ = 'planetas'
+    __tablename__ = 'planets'
     id = db.Column(db.Integer, primary_key=True)
     diameter = db.Column(db.Integer, unique=False, nullable=False)
-    population = db.Column(db.Integer, unique=False, nullable=False)
+    population = db.Column(db.String(80), unique=False, nullable=False)
     surface_water = db.Column(db.Integer, unique=False, nullable=False)
     gravity = db.Column(db.String(80), unique=False, nullable=False)
     climate = db.Column(db.String(50), unique=False, nullable=False)
     terrain = db.Column(db.String(50), unique=False, nullable=False)
     name = db.Column(db.String(50), unique=False, nullable=False)
     url = db.Column(db.String(50), unique=False, nullable=False)
-
+    tipo = db.Column(db.String(50), unique=False, nullable=False)
     def __repr__(self):
         return '<Planeta %r>' % self.name
 
@@ -85,18 +95,43 @@ class Planet(db.Model):
             # do not serialize the password, its a security breach
         }
 
-
-
-
-
-# class FavPlanets(Base):
-#     __tablename__ = 'favPlanets'
-#     # Here we define columns for the table address.
-#     # Notice that each column is also a normal Python instance attribute.
-#     id = Column(Integer, primary_key=True)
-#     userId = Column(Integer, ForeignKey('user.id'))
-#     planetId = Column(Integer, ForeignKey('planet.id'))
+class FavPlanets(db.Model):
+    __tablename__ = 'favplanets'
+    id = db.Column(db.Integer, primary_key=True)
+    planetId = db.Column(db.Integer, db.ForeignKey('planets.id'))
+    typeOfFav = db.Column(db.String(50), unique=False, nullable=False)
+    userId = db.Column(db.Integer, db.ForeignKey('user.id'))
     
+    
+    def __repr__(self):
+        return '<FavPlanets %r>' % self.id
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "userId": self.userId,
+            "planetId": self.planetId,
+            # do not serialize the password, its a security breach
+        }
+        
+class FavCharacters(db.Model):
+    __tablename__ = 'favcharacters'
+    id = db.Column(db.Integer, primary_key=True)
+    typeOfFav = db.Column(db.String(50), unique=False, nullable=False)
+    userId = db.Column(db.Integer, db.ForeignKey('user.id'))
+    characterId = db.Column(db.Integer, db.ForeignKey('personajes.id'))
+    def __repr__(self):
+        return '<FavCharacters %r>' % self.id
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "userId": self.userId,
+            "characterId": self.characterId,
+
+            # do not serialize the password, its a security breach
+        }
+
 
 # class FavCharacters(Base):
 #     __tablename__ = 'favCharacters'

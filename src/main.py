@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Personaje, Planet
+from models import db, User, Personaje, Planet, FavPlanets
 #from models import Person
 
 app = Flask(__name__)
@@ -61,7 +61,7 @@ def get_personaje(id):
 
 
 
-@app.route('/planet/', methods=['GET'])
+@app.route('/planets/', methods=['GET'])
 def get_planets():
     query_planets = Planet.query.all()
     query_planets = list(map(lambda x: x.serialize(), query_planets))
@@ -79,7 +79,11 @@ def get_planets():
 
 @app.route('/planet/<int:id>', methods=['GET'])
 def get_planet(id):
-    planet = Planet.query.get(id).serialize()
+    planet = Planet.query.get(id)
+    if planet is None:
+        return "Planet not found", 404
+    planet = planet.serialize()
+    print(planet)
     # if user_query is None:
     #     return "Not found", 404
     print(planet)
@@ -90,6 +94,66 @@ def get_planet(id):
     }
 
     return jsonify(response_body), 200
+
+@app.route('/users', methods=['GET'])
+def get_users():
+    user_query = User.query.all()
+    if user_query is None:
+        return "Planet not found", 404
+    user_query = list(map(lambda x: x.serialize(), user_query))
+    print(user_query)
+    # if user_query is None:
+    #     return "Not found", 404
+    response_body = {
+       
+        "user": user_query
+        
+    }
+
+    return jsonify(response_body), 200
+
+@app.route('/users/<int:user_id>/favorites')
+def get_favorites_by_user(user_id):
+    user_query = User.query.get(user_id)
+    #vamos por aqui
+    user_query = list(map(lambda x: x.favorite(), user_query))
+    print(user_query)
+    # if user_query is None:
+    #     return "Planet not found", 404
+    # user_query = list(map(lambda x: x.favorites(), user_query))
+    
+    # if user_query is None:
+    #     return "Not found", 404
+    # response_body = {
+       
+    #     "fav": user_query
+        
+    # }
+
+    return jsonify(response_body), 200
+
+
+@app.route('/users/<int:user_id>/favorites', methods=['POST'])
+def post_favorite(user_id):
+    body = request.get_json()
+    if body["type"] == "Planet":
+        fav = FavPlanets(typeOfFav=body['type'], userId=body['userId'], planetId=body['planetId'])
+        db.session.add(fav)
+        db.session.commit()
+        response_body = {
+       
+        "State": "Added"
+        
+    }
+    return jsonify(response_body), 200
+
+    response_body = {
+       
+        "favorites": user_query
+        
+    }
+
+    return "Ok", 200
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
