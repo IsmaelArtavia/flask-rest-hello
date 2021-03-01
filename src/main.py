@@ -9,6 +9,7 @@ from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
 from models import db, User, Personaje, Planet, FavPlanets, FavCharacters
+import json
 #from models import Person
 
 app = Flask(__name__)
@@ -65,13 +66,29 @@ def get_personaje(id):
 def get_planets():
     query_planets = Planet.query.all()
     query_planets = list(map(lambda x: x.serialize(), query_planets))
-
+    
     # if user_query is None:
     #     return "Not found", 404
     print(query_planets)
     response_body = {
         "msg": "Hello, this is your GET /user response ",
         "planets": query_planets
+        
+    }
+
+    return jsonify(response_body), 200
+
+@app.route('/users/', methods=['GET'])
+def get_todos_usuarios():
+    query_users = User.query.all()
+    query_users = list(map(lambda x: x.serialize(), query_users))
+    
+    # if user_query is None:
+    #     return "Not found", 404
+    print(query_users)
+    response_body = {
+        "msg": "Hello, this is your GET /user response ",
+        "usuarios": query_users
         
     }
 
@@ -93,41 +110,24 @@ def get_planet(id):
         
     }
 
-    return jsonify(response_body), 200
+    return jsonify(response_body), 200   
 
-@app.route('/users', methods=['GET'])
-def get_users():
-    user_query = User.query.all()
-    if user_query is None:
-        return "Planet not found", 404
-    user_query = list(map(lambda x: x.serialize(), user_query))
-    print(user_query)
-    # if user_query is None:
-    #     return "Not found", 404
-    response_body = {
-       
-        "user": user_query
-        
-    }
 
-    return jsonify(response_body), 200
 
-@app.route('/users/<int:user_id>/favorites')
+@app.route('/users/<int:user_id>/favorites', methods=["GET"])
 def get_favorites_by_user(user_id):
     user_query = User.query.get(user_id)
     user_planets = user_query.favorites()['planets']
+    # if not user_planets:
+    #     return jsonify("ERROR"), 404
     user_characters = user_query.favorites()['characters']
+    # if not user_characters:
+    #     return jsonify("ERROR"), 404
     user_planets = list(map(lambda x: x.serialize(), user_planets))
     user_characters = list(map(lambda x: x.serialize(), user_characters))
     
-    print(user_query)
-    #vamos por aqui
-    # user_query = list(map(lambda x: x.serialize(), user_query))
-    # print(user_query, type(user_query))
-    
     if user_query is None:
         return "Planet not found", 404
-    # user_query = list(map(lambda x: x.favorites(), user_query))
     
     if user_query is None:
         return "Not found", 404
@@ -136,6 +136,7 @@ def get_favorites_by_user(user_id):
         "fav_characters": user_characters
         
     }
+    
 
     return jsonify(response_body), 200
     # return jsonify('200'), 200
@@ -145,7 +146,7 @@ def get_favorites_by_user(user_id):
 @app.route('/users/<int:user_id>/favorites', methods=['POST'])
 def post_favorite(user_id):
     body = request.get_json()
-    if body["type"] == "Planet":
+    if body["type"].lower() == "Planet":
         fav = FavPlanets(typeOfFav=body['type'], userId=body['userId'], planetId=body['planetId'], name= body['name'])
         db.session.add(fav)
         db.session.commit()
@@ -154,7 +155,7 @@ def post_favorite(user_id):
         "State": "Added"
         
     }
-    elif body["type"] == "Personaje":
+    elif body["type"].lower() == "personaje":
         fav = FavCharacters(typeOfFav=body['type'], userId=body['userId'], characterId=body['characterId'], name= body['name'])
         db.session.add(fav)
         db.session.commit()
@@ -166,7 +167,32 @@ def post_favorite(user_id):
 
     return "Ok", 200
 
-# this only runs if `$ python src/main.py` is executed
+
+@app.route('/users/<int:user_id>/favorites/<int:fav_id>', methods=["DELETE"])
+def delete_fav(user_id, fav_id):
+    user_query = User.query.get(user_id)
+    user_query = user_query.serialize()['characters']
+    
+    session.query(favplanets).filter(
+       favplanets.id==fav_id).delete()
+
+    session.commit()
+       
+        
+    print(user_query, type(user_query))
+    # user_query = list(map(lambda x: x.serialize, user_query))
+    # for x in user_query:
+    #     print(x)
+    
+    # if user1 is None:
+    #     raise APIException('User not found', status_code=404)
+    # db.session.delete(user1)
+    # db.session.commit()
+
+    return jsonify("Hola"), 200
+    # return jsonify('200'), 200
+    # this only runs if `$ python src/main.py` is executed
+
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3000))
     app.run(host='0.0.0.0', port=PORT, debug=False)

@@ -21,8 +21,8 @@ class User(db.Model):
             "id": self.id,
             "email": self.email,
             "username": self.username,
-            "planets": list(map(lambda x: x.serialize, self.fav_planets)),
-            "characters": list(map(lambda x: x.serialize, self.fav_characters))
+            # "planets": list(map(lambda x: x.serialize, self.fav_planets)),
+            # "characters": list(map(lambda x: x.serialize, self.fav_characters))
             # do not serialize the password, its a security breach
         }
     def favorites(self):
