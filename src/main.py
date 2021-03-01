@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Personaje, Planet, FavPlanets
+from models import db, User, Personaje, Planet, FavPlanets, FavCharacters
 #from models import Person
 
 app = Flask(__name__)
@@ -115,29 +115,38 @@ def get_users():
 @app.route('/users/<int:user_id>/favorites')
 def get_favorites_by_user(user_id):
     user_query = User.query.get(user_id)
-    #vamos por aqui
-    user_query = list(map(lambda x: x.favorite(), user_query))
+    user_planets = user_query.favorites()['planets']
+    user_characters = user_query.favorites()['characters']
+    user_planets = list(map(lambda x: x.serialize(), user_planets))
+    user_characters = list(map(lambda x: x.serialize(), user_characters))
+    
     print(user_query)
-    # if user_query is None:
-    #     return "Planet not found", 404
+    #vamos por aqui
+    # user_query = list(map(lambda x: x.serialize(), user_query))
+    # print(user_query, type(user_query))
+    
+    if user_query is None:
+        return "Planet not found", 404
     # user_query = list(map(lambda x: x.favorites(), user_query))
     
-    # if user_query is None:
-    #     return "Not found", 404
-    # response_body = {
-       
-    #     "fav": user_query
+    if user_query is None:
+        return "Not found", 404
+    response_body = {
+        "fav_planets": user_planets,
+        "fav_characters": user_characters
         
-    # }
+    }
 
     return jsonify(response_body), 200
+    # return jsonify('200'), 200
+    
 
 
 @app.route('/users/<int:user_id>/favorites', methods=['POST'])
 def post_favorite(user_id):
     body = request.get_json()
     if body["type"] == "Planet":
-        fav = FavPlanets(typeOfFav=body['type'], userId=body['userId'], planetId=body['planetId'])
+        fav = FavPlanets(typeOfFav=body['type'], userId=body['userId'], planetId=body['planetId'], name= body['name'])
         db.session.add(fav)
         db.session.commit()
         response_body = {
@@ -145,13 +154,15 @@ def post_favorite(user_id):
         "State": "Added"
         
     }
-    return jsonify(response_body), 200
-
-    response_body = {
+    elif body["type"] == "Personaje":
+        fav = FavCharacters(typeOfFav=body['type'], userId=body['userId'], characterId=body['characterId'], name= body['name'])
+        db.session.add(fav)
+        db.session.commit()
+        response_body = {
        
-        "favorites": user_query
-        
-    }
+        "State": "Added"
+        }
+    
 
     return "Ok", 200
 

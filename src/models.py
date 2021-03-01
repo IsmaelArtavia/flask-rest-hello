@@ -21,8 +21,8 @@ class User(db.Model):
             "id": self.id,
             "email": self.email,
             "username": self.username,
-            # "planets": self.fav_planets,
-            # "characters": self.fav_characters
+            "planets": list(map(lambda x: x.serialize, self.fav_planets)),
+            "characters": list(map(lambda x: x.serialize, self.fav_characters))
             # do not serialize the password, its a security breach
         }
     def favorites(self):
@@ -101,7 +101,7 @@ class FavPlanets(db.Model):
     planetId = db.Column(db.Integer, db.ForeignKey('planets.id'))
     typeOfFav = db.Column(db.String(50), unique=False, nullable=False)
     userId = db.Column(db.Integer, db.ForeignKey('user.id'))
-    
+    name = db.Column(db.String(50), unique=False, nullable=False)
     
     def __repr__(self):
         return '<FavPlanets %r>' % self.id
@@ -111,6 +111,7 @@ class FavPlanets(db.Model):
             "id": self.id,
             "userId": self.userId,
             "planetId": self.planetId,
+            "name": self.name
             # do not serialize the password, its a security breach
         }
         
@@ -120,6 +121,7 @@ class FavCharacters(db.Model):
     typeOfFav = db.Column(db.String(50), unique=False, nullable=False)
     userId = db.Column(db.Integer, db.ForeignKey('user.id'))
     characterId = db.Column(db.Integer, db.ForeignKey('personajes.id'))
+    name = db.Column(db.String(50), unique=False, nullable=False)
     def __repr__(self):
         return '<FavCharacters %r>' % self.id
 
@@ -128,7 +130,7 @@ class FavCharacters(db.Model):
             "id": self.id,
             "userId": self.userId,
             "characterId": self.characterId,
-
+            "name": self.name
             # do not serialize the password, its a security breach
         }
 
