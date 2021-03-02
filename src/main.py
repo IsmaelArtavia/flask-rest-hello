@@ -10,6 +10,12 @@ from utils import APIException, generate_sitemap
 from admin import setup_admin
 from models import db, User, Personaje, Planet, FavPlanets, FavCharacters
 import json
+import datetime
+## Nos permite hacer las encripciones de contraseñas
+from werkzeug.security import generate_password_hash, check_password_hash
+
+## Nos permite manejar tokens por authentication (usuarios) 
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 #from models import Person
 
 app = Flask(__name__)
@@ -20,6 +26,7 @@ MIGRATE = Migrate(app, db)
 db.init_app(app)
 CORS(app)
 setup_admin(app)
+jwt = JWTManager(app)
 
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
@@ -94,6 +101,68 @@ def get_todos_usuarios():
 
     return jsonify(response_body), 200
 
+@app.route('/register', methods=['POST'])
+def register():
+    email = request.json.get("email", None)
+    if not email:
+        return "Email required", 401
+    username = request.json.get("username", None)
+    if not username:
+        return "Username required", 401
+    password = request.json.get("password", None)
+    if not password:
+        return "Password required", 401
+
+    email_query = User.query.filter_by(email=email).first()
+    if email_query:
+        return "This email has been already taken", 401
+    
+    user = User()
+    user.email = email
+    user.is_active= True
+    user.username = username
+    hashed_password = generate_password_hash(password)
+    user.password = hashed_password
+    
+    db.session.add(user)
+    db.session.commit()
+
+    response = {
+        "msg": "Added successfully",
+        "username": username
+    }
+    return jsonify(response), 200
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.json.get("email")
+    password = request.json.get("password")
+
+    if not email:
+        return jsonify({"msg":"Email required"}), 400
+
+    if not password:
+        return jsonify({"msg":"Password required"}), 400
+    
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"msg": "The email is not correct"}), 401
+    if not check_password_hash(user.password, password):
+         return jsonify({"msg": "The password is not correct"}), 401
+
+    expiracion = datetime.timedelta(days=3)
+    access_token = create_access_token(identity=user.email, expires_delta=expiracion)
+
+    data = {
+            "user": user.serialize(),
+            "token": access_token,
+            "expires": expiracion.total_seconds()*1000
+        }
+
+
+    return jsonify(data), 200 
+
 @app.route('/planet/<int:id>', methods=['GET'])
 def get_planet(id):
     planet = Planet.query.get(id)
@@ -115,7 +184,9 @@ def get_planet(id):
 
 
 @app.route('/users/<int:user_id>/favorites', methods=["GET"])
+@jwt_required() #Private space
 def get_favorites_by_user(user_id):
+    token = get_jwt_identity()
     user_query = User.query.get(user_id)
     user_planets = user_query.favorites()['planets']
     # if not user_planets:
@@ -133,8 +204,8 @@ def get_favorites_by_user(user_id):
         return "Not found", 404
     response_body = {
         "fav_planets": user_planets,
-        "fav_characters": user_characters
-        
+        "fav_characters": user_characters,
+        "user": token
     }
     
 
@@ -144,15 +215,18 @@ def get_favorites_by_user(user_id):
 
 
 @app.route('/users/<int:user_id>/favorites', methods=['POST'])
+@jwt_required() #Private space
 def post_favorite(user_id):
+    token = get_jwt_identity()
     body = request.get_json()
-    if body["type"].lower() == "Planet":
+    if body["type"].lower() == "planeta":
         fav = FavPlanets(typeOfFav=body['type'], userId=body['userId'], planetId=body['planetId'], name= body['name'])
         db.session.add(fav)
         db.session.commit()
         response_body = {
        
-        "State": "Added"
+        "State": "Added",
+        "user": token
         
     }
     elif body["type"].lower() == "personaje":
@@ -161,38 +235,37 @@ def post_favorite(user_id):
         db.session.commit()
         response_body = {
        
-        "State": "Added"
+        "State": "Added",
+        "user": token
         }
     
 
     return "Ok", 200
 
 
-@app.route('/users/<int:user_id>/favorites/<int:fav_id>', methods=["DELETE"])
-def delete_fav(user_id, fav_id):
-    user_query = User.query.get(user_id)
-    user_query = user_query.serialize()['characters']
+@app.route('/users/<int:user_id>/favorites/', methods=["DELETE"])
+def delete_fav(user_id):
+    user = User.query.get(user_id)
+    character_id = request.json.get('character_id')
+    planet_id = request.json.get('planet_id')
+
+    if not character_id and not planet_id:
+        return "Request is empty", 400
     
-    session.query(favplanets).filter(
-       favplanets.id==fav_id).delete()
+    if character_id:
+        char = FavCharacters.query.filter_by(userId=user_id, characterId=character_id).first()
+        print(char)
+        db.session.delete(char)
+        db.session.commit()
+        return "Ok", 200
 
-    session.commit()
-       
-        
-    print(user_query, type(user_query))
-    # user_query = list(map(lambda x: x.serialize, user_query))
-    # for x in user_query:
-    #     print(x)
-    
-    # if user1 is None:
-    #     raise APIException('User not found', status_code=404)
-    # db.session.delete(user1)
-    # db.session.commit()
-
-    return jsonify("Hola"), 200
-    # return jsonify('200'), 200
-    # this only runs if `$ python src/main.py` is executed
-
+    if planet_id:
+        char = FavPlanets.query.filter_by(userId=user_id, planetId=planet_id).first()
+        print(char)
+        db.session.delete(char)
+        db.session.commit()
+        return "Ok", 200
+    return "Ok", 200
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3000))
     app.run(host='0.0.0.0', port=PORT, debug=False)
