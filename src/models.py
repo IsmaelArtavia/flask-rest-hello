@@ -60,8 +60,8 @@ class Personaje(db.Model):
             "birth_year": self.birth_year,
             "gender": self.gender,
             "name": self.name,
-            "url": self.url
-
+            "url": self.url,
+            "tipo": self.tipo
             # do not serialize the password, its a security breach
         }
 

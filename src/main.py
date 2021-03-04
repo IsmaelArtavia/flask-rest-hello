@@ -103,7 +103,11 @@ def get_todos_usuarios():
 
 @app.route('/register', methods=['POST'])
 def register():
+ if request.method == 'POST':
     email = request.json.get("email", None)
+    password = request.json.get("password", None)
+    username = request.json.get("username", None)
+    
     if not email:
         return "Email required", 401
     username = request.json.get("username", None)
@@ -136,6 +140,7 @@ def register():
 
 @app.route('/login', methods=['POST'])
 def login():
+    
     email = request.json.get("email")
     password = request.json.get("password")
 
@@ -157,7 +162,8 @@ def login():
     data = {
             "user": user.serialize(),
             "token": access_token,
-            "expires": expiracion.total_seconds()*1000
+            "expires": expiracion.total_seconds()*1000,
+            "userId": user.id
         }
 
 
@@ -244,7 +250,9 @@ def post_favorite(user_id):
 
 
 @app.route('/users/<int:user_id>/favorites/', methods=["DELETE"])
+@jwt_required() #Private space
 def delete_fav(user_id):
+    token = get_jwt_identity()
     user = User.query.get(user_id)
     character_id = request.json.get('character_id')
     planet_id = request.json.get('planet_id')
