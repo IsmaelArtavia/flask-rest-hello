@@ -246,7 +246,7 @@ def post_favorite(user_id):
         }
     
 
-    return "Ok", 200
+    return jsonify("Ok"), 200
 
 
 @app.route('/users/<int:user_id>/favorites/', methods=["DELETE"])

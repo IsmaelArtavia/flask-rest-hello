@@ -90,7 +90,8 @@ class Planet(db.Model):
             "climate": self.climate,
             "terrain": self.terrain,
             "name": self.name,
-            "url": self.url
+            "url": self.url,
+            "tipo": self.tipo
 
             # do not serialize the password, its a security breach
         }
